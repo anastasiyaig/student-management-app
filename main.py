@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
         file_menu_item.addAction(add_student_action)
         help_menu_item.addAction(about_action)
         about_action.setMenuRole(QAction.MenuRole.NoRole)
+        about_action.triggered.connect(self.about)
 
         edit_menu_item.addAction(search_action)
         search_action.setMenuRole(QAction.MenuRole.NoRole)
@@ -97,6 +98,20 @@ class MainWindow(QMainWindow):
     def delete(self):
         dialog = DeleteDialog()
         dialog.exec()
+
+    def about(self):
+        dialog = AboutDialog()
+        dialog.exec()
+
+
+class AboutDialog(QMessageBox):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("About")
+        content = """
+        This is an about section
+        """
+        self.setText(content)
 
 
 class EditDialog(QDialog):
