@@ -7,55 +7,72 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidge
 import sqlite3
 
 
+class DatabaseConnection:
+    def __init__(self, db_filename="database.db"):
+        self.db_filename = db_filename
+
+    def connect(self):
+        connection = sqlite3.connect(self.db_filename)
+        return connection
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Student Management System")
         self.setMinimumSize(800, 600)
+        self.init_ui()
 
-        file_menu_item = self.menuBar().addMenu("&File")
-        help_menu_item = self.menuBar().addMenu("&Help")
-        edit_menu_item = self.menuBar().addMenu("&Edit")
+    def init_ui(self):
+        self.create_menus()
+        self.create_toolbar()
+        self.create_status_bar()
+        self.create_table()
 
-        add_student_action = QAction(
-            QIcon("icons/add.png"), "Add Student", self)
-        add_student_action.triggered.connect(self.insert)
+    def create_menus(self):
+        menu_bar = self.menuBar()
 
+        file_menu_item = menu_bar.addMenu("&File")
+        help_menu_item = menu_bar.addMenu("&Help")
+        edit_menu_item = menu_bar.addMenu("&Edit")
+
+        add_student_action = self.create_action("icons/add.png", "Add Student", self.insert)
+        search_action = self.create_action("icons/search.png", "Search", self.search)
         about_action = QAction("About", self)
-        search_action = QAction(
-            QIcon("icons/search.png"), 'Search', self)
-
-        file_menu_item.addAction(add_student_action)
-        help_menu_item.addAction(about_action)
         about_action.setMenuRole(QAction.MenuRole.NoRole)
         about_action.triggered.connect(self.about)
 
+        file_menu_item.addAction(add_student_action)
         edit_menu_item.addAction(search_action)
-        search_action.setMenuRole(QAction.MenuRole.NoRole)
-        search_action.triggered.connect(self.search)
+        help_menu_item.addAction(about_action)
 
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(("id", "name", "course", "mobile"))
-        self.table.verticalHeader().setVisible(False)
-        self.setCentralWidget(self.table)
+    def create_action(self, icon_path, text, slot):
+        action = QAction(QIcon(icon_path), text, self)
+        action.triggered.connect(slot)
+        return action
 
-        # Create toolbar and add elements
+    def create_toolbar(self):
+        """Create the toolbar and add actions."""
         toolbar = QToolBar()
         toolbar.setMovable(True)
         self.addToolBar(toolbar)
 
-        toolbar.addAction(add_student_action)
-        toolbar.addAction(search_action)
+        toolbar.addAction(self.create_action("icons/add.png", "Add Student", self.insert))
+        toolbar.addAction(self.create_action("icons/search.png", "Search", self.search))
 
-        # Create status bar and add elements
+    def create_status_bar(self):
+        """Create the status bar."""
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        # Detect a cell click
-        self.table.cellClicked.connect(
-            self.cell_clicked
-        )
+    def create_table(self):
+        """Create the main table widget."""
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["ID", "Name", "Course", "Mobile"])
+        self.table.verticalHeader().setVisible(False)
+        self.setCentralWidget(self.table)
+        self.table.cellClicked.connect(self.cell_clicked) # Detect a cell click
 
     def cell_clicked(self):
         edit_button = QPushButton("Edit record")
@@ -73,7 +90,7 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(delete_button)
 
     def load_data(self):
-        connection = sqlite3.connect("database.db")
+        connection = DatabaseConnection().connect()
         result = connection.execute("SELECT * FROM students")
         self.table.setRowCount(0)
 
@@ -159,7 +176,7 @@ class EditDialog(QDialog):
         self.setLayout(layout)
 
     def update_student(self):
-        connection = sqlite3.connect("database.db")
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         cursor.execute(
             "UPDATE students SET name = ?, course = ?, mobile = ? WHERE id = ?",
@@ -197,7 +214,7 @@ class DeleteDialog(QDialog):
         confirm.clicked.connect(self.delete_student)
 
     def delete_student(self):
-        connection = sqlite3.connect("database.db")
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
         cursor.execute(
             'DELETE from students WHERE id = ?', (self.student_id,)
@@ -237,7 +254,7 @@ class SearchDialog(QDialog):
 
     def search_student(self):
         name = self.search_box.text()
-        connection = sqlite3.connect("database.db")
+        connection = DatabaseConnection().connect()
         cursor = connection.cursor()
 
         result = cursor.execute("SELECT * FROM students WHERE name = ?", (name,))
